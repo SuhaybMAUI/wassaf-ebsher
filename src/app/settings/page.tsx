@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [geminiKey, setGeminiKey] = useState('');
   const [claudeKey, setClaudeKey] = useState('');
   const [primaryApi, setPrimaryApi] = useState<ApiProvider>('gemini');
+  const [initialPrimaryApi, setInitialPrimaryApi] = useState<ApiProvider>('gemini');
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showClaudeKey, setShowClaudeKey] = useState(false);
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
@@ -44,6 +45,7 @@ export default function SettingsPage() {
           setHasGeminiKey(data.settings.hasGeminiKey);
           setHasClaudeKey(data.settings.hasClaudeKey);
           setPrimaryApi(data.settings.primaryApi);
+          setInitialPrimaryApi(data.settings.primaryApi);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -76,6 +78,8 @@ export default function SettingsPage() {
         // تحديث حالة المفاتيح
         if (geminiKey) setHasGeminiKey(true);
         if (claudeKey) setHasClaudeKey(true);
+        // تحديث الأولوية الأصلية
+        setInitialPrimaryApi(primaryApi);
         // مسح الحقول بعد الحفظ
         setGeminiKey('');
         setClaudeKey('');
@@ -290,7 +294,7 @@ export default function SettingsPage() {
       {/* زر الحفظ */}
       <Button
         onClick={handleSave}
-        disabled={isSaving || (!geminiKey && !claudeKey && primaryApi === (hasGeminiKey ? 'gemini' : hasClaudeKey ? 'claude' : 'gemini'))}
+        disabled={isSaving || (!geminiKey && !claudeKey && primaryApi === initialPrimaryApi)}
         className="w-full gap-2"
         size="lg"
       >

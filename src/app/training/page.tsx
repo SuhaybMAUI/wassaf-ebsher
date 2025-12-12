@@ -17,6 +17,7 @@ export default function TrainingPage() {
   const [originalDescription, setOriginalDescription] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [apiUsed, setApiUsed] = useState<ApiProvider | null>(null);
+  const [wasFallback, setWasFallback] = useState(false);
 
   const [loading, setLoading] = useState<LoadingState>({
     isUploading: false,
@@ -31,6 +32,7 @@ export default function TrainingPage() {
       setOriginalDescription('');
       setEditedDescription('');
       setApiUsed(null);
+      setWasFallback(false);
 
       setLoading((prev) => ({ ...prev, isDescribing: true }));
 
@@ -50,7 +52,14 @@ export default function TrainingPage() {
           setOriginalDescription(result.description);
           setEditedDescription(result.description);
           setApiUsed(result.apiUsed);
-          toast.success('تم وصف الصورة بنجاح');
+          setWasFallback(result.wasFallback || false);
+          if (result.wasFallback) {
+            toast.success('تم وصف الصورة بنجاح', {
+              description: 'تم استخدام المزود الاحتياطي بسبب فشل المزود الأساسي',
+            });
+          } else {
+            toast.success('تم وصف الصورة بنجاح');
+          }
         } else {
           toast.error(result.error || 'فشل في وصف الصورة');
         }
@@ -93,6 +102,8 @@ export default function TrainingPage() {
         toast.success('تم التدريب بنجاح!', {
           description: `إجمالي التدريبات: ${result.newTrainingCount}`,
         });
+        // إرسال حدث لتحديث العداد فوراً
+        window.dispatchEvent(new CustomEvent('training-complete'));
         // إعادة تعيين الحقول
         setOriginalDescription('');
         setEditedDescription('');
@@ -129,7 +140,7 @@ export default function TrainingPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">رفع الصورة</h2>
-        <APIStatusIndicator currentApi={apiUsed} />
+        <APIStatusIndicator currentApi={apiUsed} wasFallback={wasFallback} />
       </div>
 
       <ImageUploader

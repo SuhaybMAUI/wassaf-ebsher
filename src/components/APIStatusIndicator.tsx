@@ -1,11 +1,12 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import type { ApiProvider } from '@/types';
 
 interface APIStatusIndicatorProps {
   currentApi?: ApiProvider | null;
+  wasFallback?: boolean;
   geminiStatus?: 'active' | 'inactive' | 'error' | 'loading';
   claudeStatus?: 'active' | 'inactive' | 'error' | 'loading';
   showDetails?: boolean;
@@ -13,6 +14,7 @@ interface APIStatusIndicatorProps {
 
 export function APIStatusIndicator({
   currentApi,
+  wasFallback = false,
   geminiStatus = 'inactive',
   claudeStatus = 'inactive',
   showDetails = false,
@@ -47,10 +49,18 @@ export function APIStatusIndicator({
     return (
       <div className="flex items-center gap-2">
         {currentApi && (
-          <Badge variant="outline" className="gap-1">
-            <CheckCircle2 className="w-3 h-3 text-green-500" />
-            {currentApi === 'gemini' ? 'Gemini API' : 'Claude API'}
-          </Badge>
+          <>
+            <Badge variant="outline" className="gap-1">
+              <CheckCircle2 className="w-3 h-3 text-green-500" />
+              {currentApi === 'gemini' ? 'Gemini API' : 'Claude API'}
+            </Badge>
+            {wasFallback && (
+              <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-700 border-amber-500/30">
+                <AlertTriangle className="w-3 h-3" />
+                احتياطي
+              </Badge>
+            )}
+          </>
         )}
       </div>
     );

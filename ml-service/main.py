@@ -33,6 +33,7 @@ class ReformulateRequest(BaseModel):
 class ReformulateResponse(BaseModel):
     success: bool
     reformulated_text: str
+    was_reformulated: bool = True
     message: Optional[str] = None
 
 class TrainRequest(BaseModel):
@@ -81,11 +82,18 @@ async def reformulate_text(request: ReformulateRequest):
         raise HTTPException(status_code=400, detail="النص مطلوب")
 
     try:
-        reformulated = reformulator.reformulate(request.text)
+        reformulated, was_reformulated = reformulator.reformulate(request.text)
+
+        if was_reformulated:
+            message = "تمت إعادة الصياغة بنجاح"
+        else:
+            message = "النموذج يحتاج لمزيد من التدريب. يمكنك تعديل النص يدوياً لتحسين الأداء."
+
         return ReformulateResponse(
             success=True,
             reformulated_text=reformulated,
-            message="تمت إعادة الصياغة بنجاح"
+            was_reformulated=was_reformulated,
+            message=message
         )
     except Exception as e:
         print(f"Reformulation error: {e}")
@@ -93,6 +101,7 @@ async def reformulate_text(request: ReformulateRequest):
         return ReformulateResponse(
             success=True,
             reformulated_text=request.text,
+            was_reformulated=False,
             message="تم إرجاع النص الأصلي بسبب خطأ في المعالجة"
         )
 

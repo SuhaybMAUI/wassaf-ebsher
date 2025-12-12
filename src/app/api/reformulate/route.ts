@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { reformulateDescription } from '@/lib/ai-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,11 +13,19 @@ export async function POST(request: NextRequest) {
 
     const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
-    const reformulatedText = await reformulateDescription(text, mlServiceUrl);
+    const response = await fetch(`${mlServiceUrl}/reformulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+
+    const result = await response.json();
 
     return NextResponse.json({
-      success: true,
-      reformulatedText,
+      success: result.success,
+      reformulatedText: result.reformulated_text,
+      wasReformulated: result.was_reformulated,
+      message: result.message,
     });
   } catch (error) {
     console.error('Reformulate API error:', error);

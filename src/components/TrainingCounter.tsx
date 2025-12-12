@@ -14,28 +14,38 @@ interface TrainingCounterProps {
 export function TrainingCounter({
   totalTrainings: initialTotal,
   lastTrainedAt: initialLastTrained,
-  refreshInterval = 30000,
+  refreshInterval = 10000, // تقليل الفاصل إلى 10 ثواني
 }: TrainingCounterProps) {
   const [totalTrainings, setTotalTrainings] = useState(initialTotal ?? 0);
   const [lastTrainedAt, setLastTrainedAt] = useState<string | null>(initialLastTrained ?? null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('/api/stats');
-        if (response.ok) {
-          const data = await response.json();
-          setTotalTrainings(data.totalTrainings);
-          setLastTrainedAt(data.lastTrainedAt);
-        }
-      } catch (error) {
-        console.error('Failed to fetch training stats:', error);
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setTotalTrainings(data.totalTrainings);
+        setLastTrainedAt(data.lastTrainedAt);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch training stats:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchStats();
     const interval = setInterval(fetchStats, refreshInterval);
-    return () => clearInterval(interval);
+
+    // الاستماع لحدث التدريب للتحديث الفوري
+    const handleTrainingComplete = () => {
+      fetchStats();
+    };
+    window.addEventListener('training-complete', handleTrainingComplete);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('training-complete', handleTrainingComplete);
+    };
   }, [refreshInterval]);
 
   const formatDate = (dateString: string | null) => {

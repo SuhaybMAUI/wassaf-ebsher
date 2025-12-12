@@ -64,13 +64,13 @@ class TextReformulator:
         self.peft_model = get_peft_model(self.model, lora_config)
         print(f"LoRA trainable params: {self.peft_model.print_trainable_parameters()}")
 
-    def reformulate(self, text: str) -> str:
-        """إعادة صياغة النص"""
+    def reformulate(self, text: str) -> tuple[str, bool]:
+        """إعادة صياغة النص - يُعيد (النص، هل_تمت_الصياغة)"""
         if not self.is_loaded:
             self.load_model()
 
-        # إعداد المدخلات
-        prompt = f"أعد صياغة النص التالي بشكل أفضل: {text}"
+        # إعداد المدخلات - استخدام تنسيق مناسب لـ AraT5
+        prompt = f"paraphrase: {text}"
 
         inputs = self.tokenizer(
             prompt,
@@ -89,16 +89,31 @@ class TextReformulator:
                 num_beams=4,
                 early_stopping=True,
                 no_repeat_ngram_size=3,
+                do_sample=False,
             )
 
         # فك الترميز
         reformulated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-        # في حالة فشل التوليد، نعيد النص الأصلي
-        if not reformulated or len(reformulated) < 10:
-            return text
+        # التحقق من صحة المخرجات - يجب أن تحتوي على نص عربي
+        if not reformulated or len(reformulated) < 10 or not self._contains_arabic(reformulated):
+            print(f"Invalid output detected, returning original text")
+            return text, False
 
-        return reformulated
+        # التحقق من أن النص مختلف عن الأصلي
+        if reformulated.strip() == text.strip():
+            return text, False
+
+        return reformulated, True
+
+    def _contains_arabic(self, text: str) -> bool:
+        """التحقق من وجود أحرف عربية في النص"""
+        arabic_chars = 0
+        for char in text:
+            if '\u0600' <= char <= '\u06FF' or '\u0750' <= char <= '\u077F':
+                arabic_chars += 1
+        # يجب أن يكون 30% على الأقل من النص عربي
+        return arabic_chars > len(text) * 0.3
 
     def train_on_pair(self, original: str, edited: str) -> bool:
         """تدريب النموذج على زوج من النصوص"""
@@ -106,8 +121,8 @@ class TextReformulator:
             self.load_model()
 
         try:
-            # إعداد المدخلات
-            prompt = f"أعد صياغة النص التالي بشكل أفضل: {original}"
+            # إعداد المدخلات - استخدام نفس التنسيق المستخدم في التوليد
+            prompt = f"paraphrase: {original}"
 
             inputs = self.tokenizer(
                 prompt,

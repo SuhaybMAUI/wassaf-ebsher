@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       success: true,
       description: result.description,
       apiUsed: result.apiUsed,
+      wasFallback: result.wasFallback,
     });
   } catch (error) {
     console.error('Describe API error:', error);

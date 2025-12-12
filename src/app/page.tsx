@@ -14,6 +14,7 @@ export default function HomePage() {
   const [originalDescription, setOriginalDescription] = useState('');
   const [reformulatedDescription, setReformulatedDescription] = useState('');
   const [apiUsed, setApiUsed] = useState<ApiProvider | null>(null);
+  const [wasFallback, setWasFallback] = useState(false);
 
   const [loading, setLoading] = useState<LoadingState>({
     isUploading: false,
@@ -28,6 +29,7 @@ export default function HomePage() {
       setOriginalDescription('');
       setReformulatedDescription('');
       setApiUsed(null);
+      setWasFallback(false);
 
       setLoading((prev) => ({ ...prev, isDescribing: true }));
 
@@ -46,7 +48,14 @@ export default function HomePage() {
         if (result.success) {
           setOriginalDescription(result.description);
           setApiUsed(result.apiUsed);
-          toast.success('تم وصف الصورة بنجاح');
+          setWasFallback(result.wasFallback || false);
+          if (result.wasFallback) {
+            toast.success('تم وصف الصورة بنجاح', {
+              description: 'تم استخدام المزود الاحتياطي بسبب فشل المزود الأساسي',
+            });
+          } else {
+            toast.success('تم وصف الصورة بنجاح');
+          }
         } else {
           toast.error(result.error || 'فشل في وصف الصورة');
         }
@@ -76,7 +85,13 @@ export default function HomePage() {
 
       if (result.success) {
         setReformulatedDescription(result.reformulatedText);
-        toast.success('تمت إعادة الصياغة بنجاح');
+        if (result.wasReformulated === false) {
+          toast.info('النموذج يحتاج لمزيد من التدريب', {
+            description: 'يمكنك تعديل النص يدوياً ثم حفظه لتحسين أداء النموذج'
+          });
+        } else {
+          toast.success('تمت إعادة الصياغة بنجاح');
+        }
       } else {
         toast.error(result.error || 'فشل في إعادة الصياغة');
       }
@@ -109,6 +124,8 @@ export default function HomePage() {
             toast.success('تم الحفظ والتدريب بنجاح', {
               description: `إجمالي التدريبات: ${result.newTrainingCount}`,
             });
+            // إرسال حدث لتحديث العداد فوراً
+            window.dispatchEvent(new CustomEvent('training-complete'));
             return true;
           } else {
             toast.error(result.error || 'فشل في التدريب');
@@ -149,7 +166,7 @@ export default function HomePage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">رفع الصورة</h2>
-        <APIStatusIndicator currentApi={apiUsed} />
+        <APIStatusIndicator currentApi={apiUsed} wasFallback={wasFallback} />
       </div>
 
       <ImageUploader

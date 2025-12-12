@@ -7,6 +7,7 @@ export type ApiProvider = 'gemini' | 'claude';
 export interface DescriptionResult {
   description: string;
   apiUsed: ApiProvider;
+  wasFallback: boolean;
   error?: string;
 }
 
@@ -17,7 +18,8 @@ async function describeWithGemini(
   apiKey: string
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+  // استخدام gemini-1.5-flash بدلاً من gemini-pro-vision المتوقف
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const result = await model.generateContent([
     WCAG_DESCRIPTION_PROMPT,
@@ -86,8 +88,12 @@ export async function getImageDescription(
     ? [{ provider: 'gemini' as const, key: geminiKey }, { provider: 'claude' as const, key: claudeKey }]
     : [{ provider: 'claude' as const, key: claudeKey }, { provider: 'gemini' as const, key: geminiKey }];
 
+  let attemptIndex = 0;
   for (const api of apis) {
-    if (!api.key) continue;
+    if (!api.key) {
+      attemptIndex++;
+      continue;
+    }
 
     try {
       let description: string;
@@ -98,12 +104,17 @@ export async function getImageDescription(
         description = await describeWithClaude(imageBase64, mimeType, api.key);
       }
 
+      // إذا كان attemptIndex > 0 فهذا يعني أنه تم استخدام المزود الاحتياطي
+      const wasFallback = attemptIndex > 0;
+
       return {
         description,
         apiUsed: api.provider,
+        wasFallback,
       };
     } catch (error) {
       console.error(`Error with ${api.provider}:`, error);
+      attemptIndex++;
       continue;
     }
   }
@@ -111,6 +122,7 @@ export async function getImageDescription(
   return {
     description: '',
     apiUsed: primaryApi,
+    wasFallback: false,
     error: 'فشل الاتصال بجميع خدمات AI. يرجى التحقق من مفاتيح API.',
   };
 }
@@ -186,7 +198,7 @@ export async function validateApiKey(
   try {
     if (provider === 'gemini') {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       await model.generateContent('test');
       return true;
     } else {
