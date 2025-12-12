@@ -1,0 +1,58 @@
+// Prisma schema for wassaf-ebsher project
+// Image description system for visually impaired users
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// نموذج الوصف الرئيسي
+model Description {
+  id               String    @id @default(cuid())
+  imageUrl         String    // رابط الصورة المحفوظة
+  originalDesc     String    @db.Text // الوصف الأصلي من AI
+  reformulatedDesc String    @db.Text // الوصف بعد إعادة الصياغة
+  manualEdit       String?   @db.Text // التعديل اليدوي إن وجد
+  wasEdited        Boolean   @default(false) // هل تم التعديل؟
+  usedForTraining  Boolean   @default(false) // هل استخدم للتدريب؟
+  apiUsed          String    @default("gemini") // أي API تم استخدامه
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editLogs         EditLog[]
+
+  @@index([createdAt])
+  @@index([usedForTraining])
+}
+
+// سجل التعديلات
+model EditLog {
+  id            String      @id @default(cuid())
+  descriptionId String
+  description   Description @relation(fields: [descriptionId], references: [id], onDelete: Cascade)
+  beforeText    String      @db.Text // النص قبل التعديل
+  afterText     String      @db.Text // النص بعد التعديل
+  editedAt      DateTime    @default(now())
+
+  @@index([descriptionId])
+  @@index([editedAt])
+}
+
+// إحصائيات التدريب
+model TrainingStats {
+  id             String    @id @default(cuid())
+  totalTrainings Int       @default(0) // إجمالي عدد التدريبات
+  lastTrainedAt  DateTime? // آخر وقت تدريب
+  updatedAt      DateTime  @updatedAt
+}
+
+// إعدادات API Keys (مشفرة)
+model ApiSettings {
+  id           String   @id @default(cuid())
+  geminiKey    String?  // مفتاح Gemini API
+  claudeKey    String?  // مفتاح Claude API
+  primaryApi   String   @default("gemini") // API الأساسي
+  updatedAt    DateTime @updatedAt
+}
