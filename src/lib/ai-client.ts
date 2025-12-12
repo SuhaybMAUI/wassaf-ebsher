@@ -18,8 +18,8 @@ async function describeWithGemini(
   apiKey: string
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  // استخدام gemini-1.5-flash بدلاً من gemini-pro-vision المتوقف
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  // استخدام gemini-2.0-flash-exp - أحدث نموذج متاح
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const result = await model.generateContent([
     WCAG_DESCRIPTION_PROMPT,
@@ -198,7 +198,7 @@ export async function validateApiKey(
   try {
     if (provider === 'gemini') {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
       await model.generateContent('test');
       return true;
     } else {
